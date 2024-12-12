@@ -1,0 +1,78 @@
+.tile-container {
+  display: grid;
+  grid-template-rows: 180px 180px;
+  grid-template-columns: 180px 180px;
+  grid-gap: 25px;
+}
+
+.info {
+  font-size: 22px;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.unclickable {
+  pointer-events: none;
+}
+
+/* Red Tile */
+.tile-red{
+  background-color: var(--bs-danger);
+}
+
+.tile-red:hover{
+  background-color: #dd3c4c;
+}
+
+.tile-red:active, .tile-red.active{
+  background-color: #c32232;
+}
+
+/* Green Tile */
+.tile-green{
+  background-color: var(--bs-success);
+}
+
+.tile-green:hover{
+  background-color: #1c975d;
+}
+
+.tile-green:active, .tile-green.active{
+  background-color: #146c43;
+}
+
+/* Yellow Tile */
+.tile-yellow{
+  background-color: var(--bs-warning);
+}
+
+.tile-yellow:hover{
+  background-color: #ffc61a;
+}
+
+.tile-yellow:active, .tile-yellow.active{
+  background-color: #e6ac00;
+}
+
+/* Blue Tile */
+.tile-blue{
+  background-color: var(--bs-info);
+}
+
+.tile-blue:hover{
+  background-color: #25d1f4;
+}
+
+.tile-blue:active, .tile-blue.active{
+  background-color: #0aa3c2;
+}
+
+.tile-red, .tile-green, .tile-yellow, .tile-blue {
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.tile-red.active, .tile-green.active, .tile-yellow.active, .tile-blue.active {
+  transform: scale(1.1);
+}
