@@ -1,5 +1,5 @@
 import example from "../example.json"
-import RenderFolderStrcture from "./components/renderFolderStrcture"
+import RenderFolderStrcture from "./components/RenderFolderStrcture"
 import { useFileSystem } from "./hooks/useFileSystem"
 
 function App() {

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { traversePath, confirmAction, promptName } from '../utils/fileSystem'
+import { findNestedPath, createPath, confirmAction, promptName } from '../utils/fileSystem'
 
 export const useFileSystem = (initialData) => {
   const [data, setData] = useState(initialData)
@@ -8,97 +8,133 @@ export const useFileSystem = (initialData) => {
     const fileName = promptName()
     if (!fileName) return
 
-    setData(prev => traversePath(prev, folderPath, (current, lastPart) => {
-      if (!lastPart) {
-        current[fileName] = null
-        return current
+    setData(prev => {
+      const newData = { ...prev }
+      
+      if (!folderPath) {
+        // Root level file
+        newData[fileName] = null
+        return newData
       }
 
-      if (Array.isArray(current[lastPart])) {
-        current[lastPart].push(fileName)
-      } else if (current[lastPart].__files) {
-        current[lastPart].__files.push(fileName)
-      } else {
-        current[lastPart] = {
-          ...current[lastPart],
-          __files: [fileName]
+      const parts = folderPath.split('/')
+      let current = newData
+      
+      // Traverse to the parent folder
+      for (let i = 0; i < parts.length - 1; i++) {
+        current = current[parts[i]]
+      }
+
+      const targetFolder = current[parts[parts.length - 1]]
+      
+      if (Array.isArray(targetFolder)) {
+        targetFolder.push(fileName)
+      } else if (typeof targetFolder === 'object') {
+        if (!targetFolder.__files) {
+          targetFolder.__files = [fileName]
+        } else {
+          targetFolder.__files.push(fileName)
         }
       }
-      return current
-    }))
+
+      return newData
+    })
   }
 
   const handleAddFolder = (folderPath = '') => {
     const folderName = promptName()
     if (!folderName) return
 
-    setData(prev => traversePath(prev, folderPath, (current, lastPart) => {
-      if (!lastPart) {
-        current[folderName] = []
-        return current
+    setData(prev => {
+      const newData = { ...prev }
+      
+      if (!folderPath) {
+        // Root level folder
+        newData[folderName] = []
+        return newData
       }
 
-      if (Array.isArray(current[lastPart])) {
-        const existingFiles = current[lastPart]
-        current[lastPart] = {
-          [folderName]: [],
-          __files: existingFiles
-        }
-      } else if (current[lastPart].__files) {
-        current[lastPart][folderName] = []
-      } else {
-        current[lastPart] = {
-          ...current[lastPart],
-          [folderName]: []
-        }
+      const parts = folderPath.split('/')
+      let current = newData
+      
+      // Traverse to the parent folder
+      for (let i = 0; i < parts.length - 1; i++) {
+        current = current[parts[i]]
       }
-      return current
-    }))
+
+      const targetFolder = current[parts[parts.length - 1]]
+      
+      if (Array.isArray(targetFolder)) {
+        // If it's an array, convert to object with __files
+        current[parts[parts.length - 1]] = {
+          [folderName]: [],
+          __files: targetFolder
+        }
+      } else if (typeof targetFolder === 'object') {
+        // If it's an object (nested folder)
+        targetFolder[folderName] = []
+      }
+
+      return newData
+    })
   }
 
   const handleDeleteFile = (folderPath, fileName) => {
     if (!confirmAction('Are you sure you want to delete this file?')) return
 
-    setData(prev => traversePath(prev, folderPath, (current, lastPart) => {
-      if (!lastPart) {
-        delete current[fileName]
-        return current
+    setData(prev => {
+      const newData = { ...prev }
+      
+      if (!folderPath) {
+        // Root level file
+        delete newData[fileName]
+        return newData
       }
 
-      if (Array.isArray(current[lastPart])) {
-        current[lastPart] = current[lastPart].filter(file => file !== fileName)
-      } else if (current[lastPart].__files) {
-        current[lastPart].__files = current[lastPart].__files.filter(file => file !== fileName)
+      const parts = folderPath.split('/')
+      let current = newData
+      
+      // Traverse to the parent folder
+      for (let i = 0; i < parts.length - 1; i++) {
+        current = current[parts[i]]
       }
-      return current
-    }))
+
+      const targetFolder = current[parts[parts.length - 1]]
+      
+      if (Array.isArray(targetFolder)) {
+        return {
+          ...newData,
+          [folderPath]: targetFolder.filter(file => file !== fileName)
+        }
+      } else if (typeof targetFolder === 'object') {
+        if (targetFolder.__files) {
+          targetFolder.__files = targetFolder.__files.filter(file => file !== fileName)
+        }
+      }
+
+      return newData
+    })
   }
 
   const handleDeleteFolder = (path) => {
     if (!confirmAction('Are you sure you want to delete this folder and its contents?')) return
 
-    setData(prev => traversePath(prev, path, (current, lastPart, newData) => {
-      if (!lastPart) {
-        delete current[path]
-        return current
+    setData(prev => {
+      const newData = { ...prev }
+      
+      const parts = path.split('/')
+      let current = newData
+      
+      // Traverse to the parent folder
+      for (let i = 0; i < parts.length - 1; i++) {
+        current = current[parts[i]]
       }
 
-      const parentFolder = current[Object.keys(current)[0]]
-      if (parentFolder && parentFolder.__files) {
-        delete current[lastPart]
-        // If folder is empty after deletion, convert back to array
-        if (Object.keys(current).length === 1 && current.__files) {
-          const parentPath = path.split('/')[0]
-          return {
-            ...newData,
-            [parentPath]: current.__files
-          }
-        }
-      } else {
-        delete current[lastPart]
-      }
+      // Delete the folder
+      delete current[parts[parts.length - 1]]
+
       return newData
-    }))
+    })
   }
 
   const handleRename = (path, isFolder) => {
@@ -107,19 +143,52 @@ export const useFileSystem = (initialData) => {
     const newName = promptName(oldName)
     if (!newName) return
 
-    setData(prev => traversePath(prev, path, (current, lastPart, newData) => {
-      if (!lastPart) {
-        const value = current[oldName]
-        delete current[oldName]
-        current[newName] = value
-        return current
+    setData(prev => {
+      const newData = { ...prev }
+      
+      if (parts.length === 1) {
+        // Root level rename
+        const value = newData[oldName]
+        delete newData[oldName]
+        newData[newName] = value
+        return newData
       }
 
-      const value = current[oldName]
-      delete current[oldName]
-      current[newName] = value
+      let current = newData
+      
+      // Traverse to the parent folder
+      for (let i = 0; i < parts.length - 1; i++) {
+        current = current[parts[i]]
+      }
+
+      const targetFolder = current[parts[parts.length - 1]]
+      
+      if (isFolder) {
+        // Renaming a folder
+        const folderContent = targetFolder
+        delete current[parts[parts.length - 1]]
+        current[newName] = folderContent
+      } else {
+        // Renaming a file
+        if (Array.isArray(current)) {
+          // Root-level or simple array
+          const index = current.indexOf(oldName)
+          if (index !== -1) {
+            current[index] = newName
+          }
+        } else if (typeof current === 'object') {
+          // Nested folder with __files
+          if (current.__files) {
+            const fileIndex = current.__files.indexOf(oldName)
+            if (fileIndex !== -1) {
+              current.__files[fileIndex] = newName
+            }
+          }
+        }
+      }
+
       return newData
-    }))
+    })
   }
 
   return {
@@ -130,4 +199,4 @@ export const useFileSystem = (initialData) => {
     handleDeleteFolder,
     handleRename
   }
-} 
+}
