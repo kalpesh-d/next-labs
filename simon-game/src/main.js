@@ -53,7 +53,7 @@ function nextRound() {
 
   tileContainer.classList.add('unclickable');
   info.textContent = 'Watch the sequence';
-  heading.textContent = `Level ${level} of 20`;
+  heading.textContent = `Level ${level} of 10`;
 
   const nextSequence = [...sequence];
   nextSequence.push(nextStep());
@@ -76,7 +76,7 @@ function handleClick(tile) {
   }
 
   if (humanSequence.length === sequence.length) {
-    if(humanSequence.length === 20) {
+    if(humanSequence.length === 10) {
       resetGame('Congratulations! You have completed the game');
       return;
     }
